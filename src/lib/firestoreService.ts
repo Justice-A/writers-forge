@@ -18,6 +18,9 @@ import { db } from './firebase';
 type FirestoreItem = { id: string; [key: string]: unknown };
 
 export function userCollectionRef(userId: string, collectionName: string) {
+  if (!db) {
+    throw new Error('Firebase Firestore is not configured yet.');
+  }
   return collection(db, `users/${userId}/${collectionName}`);
 }
 
@@ -53,6 +56,7 @@ export async function deleteItem(
   itemId: string
 ) {
   if (!userId) throw new Error('User ID is required');
+  if (!db) throw new Error('Firebase Firestore is not configured yet.');
   try {
     const docRef = doc(db, `users/${userId}/${collectionName}/${itemId}`);
     await deleteDoc(docRef);
@@ -72,6 +76,7 @@ export async function updateItem(
   data: Record<string, unknown>
 ) {
   if (!userId) throw new Error('User ID is required');
+  if (!db) throw new Error('Firebase Firestore is not configured yet.');
   try {
     const docRef = doc(db, `users/${userId}/${collectionName}/${itemId}`);
     await updateDoc(docRef, {

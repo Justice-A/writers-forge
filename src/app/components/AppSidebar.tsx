@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import { useEffect, useState } from "react";
 
@@ -56,7 +56,9 @@ function toggleTheme() {
   async function handleSignOut() {
     setSigningOut(true);
     try {
-      await signOut(auth);
+      if (auth && isFirebaseConfigured) {
+        await signOut(auth);
+      }
       router.push("/auth");
     } catch (error) {
       console.error("Sign out error:", error);

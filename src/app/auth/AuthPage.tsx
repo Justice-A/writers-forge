@@ -6,7 +6,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import Link from "next/link";
 
@@ -31,6 +31,12 @@ export default function AuthPage() {
     e.preventDefault();
     setError("");
     setSubmitting(true);
+
+    if (!auth || !isFirebaseConfigured) {
+      setError("Firebase is not configured yet. You can continue in local mode.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       if (mode === "signup") {
