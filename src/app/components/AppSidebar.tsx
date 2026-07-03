@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useFirebaseUser } from "@/lib/useFirebaseUser";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { title: "Dashboard", href: "/", icon: "DB" },
@@ -16,6 +20,46 @@ const navItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useFirebaseUser();
+  const [signingOut, setSigningOut] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+useEffect(() => {
+  const saved = localStorage.getItem("theme");
+
+  if (saved === "dark") {
+    setIsDark(true);
+    document.documentElement.classList.add("dark");
+  }
+}, []);
+
+function toggleTheme() {
+  const next = !isDark;
+
+  setIsDark(next);
+
+  if (next) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  }
+}
+
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await signOut(auth);
+      router.push("/auth");
+    } catch (error) {
+      console.error("Sign out error:", error);
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   return (
     <aside className="hidden min-h-screen w-64 shrink-0 border-r border-white/[0.06] bg-[#08090c] px-4 py-6 lg:flex lg:flex-col">
@@ -53,20 +97,53 @@ export default function AppSidebar() {
       </nav>
 
       <div className="mt-auto border-t border-white/[0.06] pt-5">
-        <div className="flex items-center gap-3 rounded-lg px-2 py-3">
-          <div className="h-9 w-9 rounded-full bg-zinc-800" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-zinc-200">
-              Aregbesola .Bolu
-            </p>
-            <p className="text-xs text-zinc-600">Writer</p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between px-2 text-sm text-zinc-500">
+        {user ? (
+          <>
+            <div className="flex items-center gap-3 rounded-lg px-2 py-3">
+              <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-xs font-semibold text-orange-400">
+                {user.email?.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-zinc-200">
+                  {user.email?.split("@")[0]}
+                </p>
+                <p className="text-xs text-orange-400">Synced</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="w-full mt-3 rounded-lg border border-white/[0.07] px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-50"
+            >
+              {signingOut ? "Signing out..." : "Sign Out"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-zinc-600 mb-3">Local Mode</p>
+            <Link
+              href="/auth"
+              className="block w-full rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-500/15 text-center"
+            >
+              Sign In
+            </Link>
+          </>
+        )}
+        <div className="mt-4 flex items-center justify-between px-2 text-sm text-zinc-500">
           <span>Dark Mode</span>
-          <span className="h-5 w-9 rounded-full bg-orange-500 p-0.5">
-            <span className="block h-4 w-4 translate-x-4 rounded-full bg-white" />
-          </span>
+
+          <button
+            onClick={toggleTheme}
+            className={`relative h-5 w-9 rounded-full p-0.5 transition-colors ${
+              isDark ? "bg-orange-500" : "bg-zinc-600"
+            }`}
+          >
+            <span
+              className={`block h-4 w-4 rounded-full bg-white transition-transform ${
+                isDark ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
       </div>
     </aside>

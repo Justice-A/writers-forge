@@ -1,24 +1,33 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import AppFrame from "../components/AppFrame";
+import { useFirebaseUser } from "@/lib/useFirebaseUser";
+import {
+  addItem,
+  deleteItem,
+  updateItem,
+  listenToItems,
+  migrateLocalStorageToFirestore,
+} from "@/lib/firestoreService";
 
 type CharacterType = "Protagonist" | "Antagonist" | "Supporting";
 
 type Character = {
-  id: number;
+  id: string;
   name: string;
   role: string;
   notes: string;
   type: CharacterType;
   traits: string[];
   added: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const initialCharacters: Character[] = [
   {
-    id: 1,
+    id: "1",
     name: "Ade",
     role: "Young warrior",
     notes: "On a quest to uncover the truth about his past and protect his people.",
@@ -27,7 +36,7 @@ const initialCharacters: Character[] = [
     added: "18 May 2026",
   },
   {
-    id: 2,
+    id: "2",
     name: "The Uncle",
     role: "Mystic Guardian",
     notes: "A wise and mysterious guide with knowledge of ancient secrets.",
@@ -36,7 +45,7 @@ const initialCharacters: Character[] = [
     added: "18 May 2026",
   },
   {
-    id: 3,
+    id: "3",
     name: "Sade",
     role: "Love Interest",
     notes: "Strong-willed and quietly observant, with dreams of her own.",
@@ -56,7 +65,15 @@ function matchesFilter(character: Character, activeFilter: string) {
   );
 }
 
-function CharacterCard({ character }: { character: Character }) {
+function CharacterCard({
+  character,
+  onEdit,
+  onDelete,
+}: {
+  character: Character;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
     <article className="grid gap-5 rounded-xl border border-white/[0.07] bg-[#090a0d] p-5 transition hover:border-white/[0.12] md:grid-cols-[1fr_170px]">
       <div>
@@ -91,11 +108,11 @@ function CharacterCard({ character }: { character: Character }) {
           <p className="text-xs text-zinc-600">Added</p>
           <p className="mt-1">{character.added}</p>
         </div>
-        <div className="flex gap-2">
-          <button className="rounded-lg border border-white/[0.07] px-3 py-2 text-zinc-400 transition hover:border-orange-500/40 hover:text-orange-400">
+          <div className="flex gap-2">
+          <button onClick={() => onEdit(character.id)} className="rounded-lg border border-white/[0.07] px-3 py-2 text-zinc-400 transition hover:border-orange-500/40 hover:text-orange-400">
             Edit
           </button>
-          <button className="rounded-lg border border-orange-500/20 px-3 py-2 text-orange-500/80 transition hover:bg-orange-500/10">
+          <button onClick={() => onDelete(character.id)} className="rounded-lg border border-orange-500/20 px-3 py-2 text-orange-500/80 transition hover:bg-orange-500/10">
             Delete
           </button>
         </div>
@@ -105,13 +122,79 @@ function CharacterCard({ character }: { character: Character }) {
 }
 
 export default function CharactersWorkspace() {
-  const [characters, setCharacters] = useState(initialCharacters);
+  const { user, loading: authLoading } = useFirebaseUser();
+  const [characters, setCharacters] = useState<Character[]>(initialCharacters);
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Characters");
+  const [migrationPrompted, setMigrationPrompted] = useState(false);
+
+  // Load from localStorage on initial mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("wf_characters");
+      if (raw) {
+        const data = JSON.parse(raw);
+        setCharacters(data);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Listen to Firestore if user is signed in
+  useEffect(() => {
+    if (!user || authLoading) return;
+
+    const unsubscribe = listenToItems(
+      user.uid,
+      "characters",
+      (items) => {
+        setCharacters(items as Character[]);
+      },
+      (error) => {
+        console.error("Failed to load characters from Firestore:", error);
+      }
+    );
+
+    return unsubscribe;
+  }, [user, authLoading]);
+
+  // Offer migration from localStorage to Firestore on first sign-in
+  useEffect(() => {
+    if (!user || migrationPrompted) return;
+
+    const localData = localStorage.getItem("wf_characters");
+    if (localData) {
+      const shouldMigrate = confirm(
+        "Migrate your local characters to the cloud? Your data will sync across devices."
+      );
+      if (shouldMigrate) {
+        migrateLocalStorageToFirestore(user.uid, "wf_characters", "characters")
+          .then((result) => {
+            if (result.success) {
+              console.log(`Migrated ${result.migratedCount} characters`);
+            } else {
+              console.error("Migration failed:", result.error);
+            }
+          });
+      }
+    }
+    setMigrationPrompted(true);
+  }, [user, migrationPrompted]);
+
+  // Persist to localStorage if no user (offline mode)
+  useEffect(() => {
+    if (user) return; // Don't persist to localStorage when using Firestore
+    try {
+      localStorage.setItem("wf_characters", JSON.stringify(characters));
+    } catch (e) {
+      // ignore
+    }
+  }, [characters, user]);
 
   const filteredCharacters = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -133,7 +216,7 @@ export default function CharactersWorkspace() {
     });
   }, [activeFilter, characters, query]);
 
-  function addCharacter(event: FormEvent<HTMLFormElement>) {
+  async function addCharacter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
@@ -146,22 +229,78 @@ export default function CharactersWorkspace() {
       return;
     }
 
-    setCharacters((currentCharacters) => [
-      {
-        id: Date.now(),
-        name: trimmedName,
-        role: trimmedRole,
-        notes: trimmedNotes || "No notes yet.",
-        type: "Supporting",
-        traits: ["New"],
-        added: "Today",
-      },
-      ...currentCharacters,
-    ]);
+    const newCharacter = {
+      name: trimmedName,
+      role: trimmedRole,
+      notes: trimmedNotes || "No notes yet.",
+      type: "Supporting" as CharacterType,
+      traits: ["New"],
+      added: "Today",
+    };
+
+    if (user) {
+      // Add to Firestore
+      try {
+        await addItem(user.uid, "characters", newCharacter);
+      } catch (error) {
+        console.error("Error adding character:", error);
+        setFormError("Failed to save character. Please try again.");
+        return;
+      }
+    } else {
+      // Add to localStorage only
+      setCharacters((currentCharacters) => [
+        {
+          id: String(Date.now()),
+          ...newCharacter,
+        },
+        ...currentCharacters,
+      ]);
+    }
+
     setName("");
     setRole("");
     setNotes("");
     setFormError("");
+  }
+
+  async function deleteCharacter(id: string) {
+    if (!confirm("Delete this character?")) return;
+
+    if (user) {
+      try {
+        await deleteItem(user.uid, "characters", id);
+      } catch (error) {
+        console.error("Error deleting character:", error);
+      }
+    } else {
+      setCharacters((current) => current.filter((c) => c.id !== id));
+    }
+  }
+
+  async function editCharacter(id: string) {
+    const target = characters.find((c) => c.id === id);
+    if (!target) return;
+    const newName = prompt("Name", target.name)?.trim();
+    const newRole = prompt("Role", target.role)?.trim();
+    if (!newName || !newRole) return;
+
+    if (user) {
+      try {
+        await updateItem(user.uid, "characters", id, {
+          name: newName,
+          role: newRole,
+        });
+      } catch (error) {
+        console.error("Error updating character:", error);
+      }
+    } else {
+      setCharacters((current) =>
+        current.map((c) =>
+          c.id === id ? { ...c, name: newName, role: newRole } : c
+        )
+      );
+    }
   }
 
   return (
@@ -178,6 +317,7 @@ export default function CharactersWorkspace() {
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
                 Create and manage your story characters.
+                {user ? ` (Synced as ${user.email})` : " (Local mode)"}
               </p>
             </div>
           </div>
@@ -257,13 +397,18 @@ export default function CharactersWorkspace() {
             ))}
           </div>
           <div className="rounded-lg border border-white/[0.07] bg-[#090a0d] px-4 py-2 text-sm text-zinc-500">
-            Recently Added
+            {user ? "Cloud Sync" : "Local Only"}
           </div>
         </section>
 
         <section className="mt-5 space-y-4">
           {filteredCharacters.map((character) => (
-            <CharacterCard key={character.id} character={character} />
+            <CharacterCard
+              key={character.id}
+              character={character}
+              onEdit={editCharacter}
+              onDelete={deleteCharacter}
+            />
           ))}
           {filteredCharacters.length === 0 ? (
             <div className="rounded-xl border border-dashed border-white/[0.1] p-8 text-center text-zinc-500">
