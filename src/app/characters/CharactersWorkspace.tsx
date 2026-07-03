@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import AppFrame from "../components/AppFrame";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import {
@@ -25,37 +25,15 @@ type Character = {
   updatedAt?: string;
 };
 
-const initialCharacters: Character[] = [
-  {
-    id: "1",
-    name: "Ade",
-    role: "Young warrior",
-    notes: "On a quest to uncover the truth about his past and protect his people.",
-    type: "Protagonist",
-    traits: ["Brave", "Determined", "Leader"],
-    added: "18 May 2026",
-  },
-  {
-    id: "2",
-    name: "The Uncle",
-    role: "Mystic Guardian",
-    notes: "A wise and mysterious guide with knowledge of ancient secrets.",
-    type: "Supporting",
-    traits: ["Wise", "Mysterious", "Protective"],
-    added: "18 May 2026",
-  },
-  {
-    id: "3",
-    name: "Sade",
-    role: "Love Interest",
-    notes: "Strong-willed and quietly observant, with dreams of her own.",
-    type: "Supporting",
-    traits: ["Intelligent", "Independent", "Compassionate"],
-    added: "18 May 2026",
-  },
-];
-
 const filters = ["All Characters", "Protagonists", "Antagonists", "Supporting"];
+const MOCK_CHARACTER_NAMES = new Set(["Ade", "The Uncle", "Sade"]);
+
+function sanitizeCharacters(items: Character[]) {
+  return items.filter((character) => {
+    const normalizedName = character.name?.trim();
+    return !normalizedName || !MOCK_CHARACTER_NAMES.has(normalizedName);
+  });
+}
 
 function matchesFilter(character: Character, activeFilter: string) {
   return (
@@ -75,7 +53,7 @@ function CharacterCard({
   onDelete: (id: string) => void;
 }) {
   return (
-    <article className="grid gap-5 rounded-xl border border-white/[0.07] bg-[#090a0d] p-5 transition hover:border-white/[0.12] md:grid-cols-[1fr_170px]">
+    <article className="grid gap-5 rounded-xl border border-white/[0.07] bg-[#090a0d] p-5 transition hover:border-white/10 md:grid-cols-[1fr_170px]">
       <div>
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-semibold text-zinc-100">
@@ -95,7 +73,7 @@ function CharacterCard({
           {character.traits.map((trait) => (
             <span
               key={trait}
-              className="rounded-md bg-white/[0.04] px-2.5 py-1 text-xs text-zinc-400"
+              className="rounded-md bg-white/4 px-2.5 py-1 text-xs text-zinc-400"
             >
               {trait}
             </span>
@@ -123,27 +101,24 @@ function CharacterCard({
 
 export default function CharactersWorkspace() {
   const { user, loading: authLoading } = useFirebaseUser();
-  const [characters, setCharacters] = useState<Character[]>(initialCharacters);
+  const [characters, setCharacters] = useState<Character[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("wf_characters");
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? sanitizeCharacters(data as Character[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
   const [formError, setFormError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Characters");
-  const [migrationPrompted, setMigrationPrompted] = useState(false);
-
-  // Load from localStorage on initial mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("wf_characters");
-      if (raw) {
-        const data = JSON.parse(raw);
-        setCharacters(data);
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, []);
+  const migrationPromptedRef = useRef(false);
 
   // Listen to Firestore if user is signed in
   useEffect(() => {
@@ -153,7 +128,7 @@ export default function CharactersWorkspace() {
       user.uid,
       "characters",
       (items) => {
-        setCharacters(items as Character[]);
+        setCharacters(sanitizeCharacters(items as Character[]));
       },
       (error) => {
         console.error("Failed to load characters from Firestore:", error);
@@ -163,35 +138,30 @@ export default function CharactersWorkspace() {
     return unsubscribe;
   }, [user, authLoading]);
 
-  // Offer migration from localStorage to Firestore on first sign-in
+  // Migrate local data to Firestore on first sign-in without interrupting the user.
   useEffect(() => {
-    if (!user || migrationPrompted) return;
+    if (!user || migrationPromptedRef.current) return;
 
+    migrationPromptedRef.current = true;
     const localData = localStorage.getItem("wf_characters");
     if (localData) {
-      const shouldMigrate = confirm(
-        "Migrate your local characters to the cloud? Your data will sync across devices."
-      );
-      if (shouldMigrate) {
-        migrateLocalStorageToFirestore(user.uid, "wf_characters", "characters")
-          .then((result) => {
-            if (result.success) {
-              console.log(`Migrated ${result.migratedCount} characters`);
-            } else {
-              console.error("Migration failed:", result.error);
-            }
-          });
-      }
+      void migrateLocalStorageToFirestore(user.uid, "wf_characters", "characters")
+        .then((result) => {
+          if (result.success) {
+            console.log(`Migrated ${result.migratedCount} characters`);
+          } else {
+            console.error("Migration failed:", result.error);
+          }
+        });
     }
-    setMigrationPrompted(true);
-  }, [user, migrationPrompted]);
+  }, [user]);
 
   // Persist to localStorage if no user (offline mode)
   useEffect(() => {
     if (user) return; // Don't persist to localStorage when using Firestore
     try {
-      localStorage.setItem("wf_characters", JSON.stringify(characters));
-    } catch (e) {
+      localStorage.setItem("wf_characters", JSON.stringify(sanitizeCharacters(characters)));
+    } catch {
       // ignore
     }
   }, [characters, user]);
@@ -306,7 +276,7 @@ export default function CharactersWorkspace() {
   return (
     <AppFrame>
       <div className="mx-auto max-w-6xl">
-        <header className="grid gap-6 border-b border-white/[0.06] pb-7 xl:grid-cols-[1fr_360px]">
+        <header className="grid gap-6 border-b border-white/6 pb-7 xl:grid-cols-[1fr_360px]">
           <div className="flex gap-4">
             <div className="mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 text-sm font-semibold text-orange-500">
               CH
@@ -411,7 +381,7 @@ export default function CharactersWorkspace() {
             />
           ))}
           {filteredCharacters.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/[0.1] p-8 text-center text-zinc-500">
+            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-zinc-500">
               No characters match your search.
             </div>
           ) : null}

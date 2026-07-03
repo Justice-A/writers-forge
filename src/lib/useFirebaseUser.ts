@@ -8,26 +8,20 @@ export function useFirebaseUser() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const unsubscribe = onAuthStateChanged(
-        auth,
-        (currentUser) => {
-          setUser(currentUser);
-          setLoading(false);
-        },
-        (err) => {
-          console.error('Auth error:', err);
-          setError(err.message);
-          setLoading(false);
-        }
-      );
-      return unsubscribe;
-    } catch (err) {
-      console.error('Firebase auth setup error:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setLoading(false);
-      return () => {};
-    }
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Auth error:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setLoading(false);
+      }
+    );
+
+    return unsubscribe;
   }, []);
 
   return { user, loading, error };

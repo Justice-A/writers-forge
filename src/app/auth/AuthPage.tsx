@@ -51,127 +51,139 @@ export default function AuthPage() {
 
       // On success, redirect to home
       router.push("/");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Auth error:", err);
-      setError(err.message || "Authentication failed. Please try again.");
+      const message = err instanceof Error ? err.message : "Authentication failed. Please try again.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-[#030303] text-zinc-100 flex items-center justify-center px-4">
+    <main className="flex min-h-screen items-center justify-center bg-[#030303] px-4 py-10 text-zinc-100">
       {loading ? (
         <div className="text-center">
           <p className="text-zinc-400">Loading...</p>
         </div>
       ) : (
-        <><div className="mb-8 text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
+            <div className="mb-4 flex items-center justify-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-lg text-orange-500">
                 WF
               </span>
-              <span className="text-2xl font-semibold">Writer's Forge</span>
+              <span className="text-2xl font-semibold">Writer&apos;s Forge</span>
             </div>
             <p className="text-sm text-zinc-500">
               A focused workspace for writers.
             </p>
-          </div><div className="rounded-lg border border-white/[0.07] bg-[#0b0b0d] p-6">
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => {
-                    setMode("signin");
-                    setError("");
-                  } }
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${mode === "signin"
-                      ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-                      : "bg-[#050506] text-zinc-500 border border-white/[0.07] hover:text-zinc-200"}`}
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => {
-                    setMode("signup");
-                    setError("");
-                  } }
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition ${mode === "signup"
-                      ? "bg-orange-500/15 text-orange-400 border border-orange-500/30"
-                      : "bg-[#050506] text-zinc-500 border border-white/[0.07] hover:text-zinc-200"}`}
-                >
-                  Sign Up
-                </button>
+          </div>
+
+          <div className="rounded-lg border border-white/7 bg-[#0b0b0d] p-6">
+            <div className="mb-6 flex gap-2">
+              <button
+                onClick={() => {
+                  setMode("signin");
+                  setError("");
+                }}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  mode === "signin"
+                    ? "border border-orange-500/30 bg-orange-500/15 text-orange-400"
+                    : "border border-white/7 bg-[#050506] text-zinc-500 hover:text-zinc-200"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => {
+                  setMode("signup");
+                  setError("");
+                }}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  mode === "signup"
+                    ? "border border-orange-500/30 bg-orange-500/15 text-orange-400"
+                    : "border border-white/7 bg-[#050506] text-zinc-500 hover:text-zinc-200"
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
+                />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="w-full rounded-lg border border-white/[0.07] bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10" />
-                </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
+                />
+              </div>
 
+              {mode === "signup" && (
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-2">
-                    Password
+                  <label className="mb-2 block text-sm font-medium text-zinc-300">
+                    Confirm Password
                   </label>
                   <input
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full rounded-lg border border-white/[0.07] bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10" />
+                    className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
+                  />
                 </div>
+              )}
 
-                {mode === "signup" && (
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-300 mb-2">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className="w-full rounded-lg border border-white/[0.07] bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10" />
-                  </div>
-                )}
+              {error && (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </div>
+              )}
 
-                {error && (
-                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                    {error}
-                  </div>
-                )}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? "Loading..." : mode === "signin" ? "Sign In" : "Sign Up"}
+              </button>
+            </form>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Loading..." : mode === "signin" ? "Sign In" : "Sign Up"}
-                </button>
-              </form>
+            <div className="mt-6 rounded-lg border border-white/7 bg-[#050506] p-4">
+              <p className="text-center text-xs text-zinc-500">
+                Local mode: sign in or continue without an account to keep your
+                work stored locally.
+              </p>
+            </div>
+          </div>
 
-              <div className="mt-6 p-4 rounded-lg bg-[#050506] border border-white/[0.07]">
-                <p className="text-xs text-zinc-500 text-center">
-                  Demo mode: Sign in without an account to use locally with
-                  <br />
-                  localStorage (no Firestore sync).
-                </p>
-              </div>
-            </div><div className="mt-4 text-center text-sm text-zinc-500">
-              <Link href="/" className="text-orange-400 hover:text-orange-300">
-                Continue without account →
-              </Link>
-            </div></>
-      </div>
+          <div className="mt-4 text-center text-sm text-zinc-500">
+            <Link href="/" className="text-orange-400 hover:text-orange-300">
+              Continue without account →
+            </Link>
+          </div>
+        </div>
       )}
     </main>
   );

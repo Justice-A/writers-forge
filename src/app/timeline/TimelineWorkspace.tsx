@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import AppFrame from "../components/AppFrame";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import {
@@ -14,21 +14,20 @@ type EventItem = { id: string; title: string; date?: string };
 
 export default function TimelineWorkspace() {
   const { user, loading: authLoading } = useFirebaseUser();
-  const [items, setItems] = useState<EventItem[]>([]);
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [migrationPrompted, setMigrationPrompted] = useState(false);
-
-  // Load from localStorage on initial mount
-  useEffect(() => {
+  const [items, setItems] = useState<EventItem[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem("wf_timeline");
-      if (raw) {
-        const data = JSON.parse(raw);
-        setItems(data);
-      }
-    } catch (e) {}
-  }, []);
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? (data as EventItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("");
+  const migrationPromptedRef = useRef(false);
 
   // Listen to Firestore if user is signed in
   useEffect(() => {
@@ -48,35 +47,30 @@ export default function TimelineWorkspace() {
     return unsubscribe;
   }, [user, authLoading]);
 
-  // Offer migration from localStorage to Firestore on first sign-in
+  // Migrate local data to Firestore on first sign-in without interrupting the user.
   useEffect(() => {
-    if (!user || migrationPrompted) return;
+    if (!user || migrationPromptedRef.current) return;
 
+    migrationPromptedRef.current = true;
     const localData = localStorage.getItem("wf_timeline");
     if (localData) {
-      const shouldMigrate = confirm(
-        "Migrate your local timeline events to the cloud? Your data will sync across devices."
-      );
-      if (shouldMigrate) {
-        migrateLocalStorageToFirestore(user.uid, "wf_timeline", "timeline")
-          .then((result) => {
-            if (result.success) {
-              console.log(`Migrated ${result.migratedCount} timeline events`);
-            } else {
-              console.error("Migration failed:", result.error);
-            }
-          });
-      }
+      void migrateLocalStorageToFirestore(user.uid, "wf_timeline", "timeline")
+        .then((result) => {
+          if (result.success) {
+            console.log(`Migrated ${result.migratedCount} timeline events`);
+          } else {
+            console.error("Migration failed:", result.error);
+          }
+        });
     }
-    setMigrationPrompted(true);
-  }, [user, migrationPrompted]);
+  }, [user]);
 
   // Persist to localStorage if no user (offline mode)
   useEffect(() => {
     if (user) return;
     try {
       localStorage.setItem("wf_timeline", JSON.stringify(items));
-    } catch (e) {}
+    } catch {}
   }, [items, user]);
 
   async function addEvent(e: FormEvent) {
@@ -114,7 +108,7 @@ export default function TimelineWorkspace() {
   return (
     <AppFrame>
       <div className="mx-auto max-w-6xl">
-        <header className="flex gap-4 items-center border-b border-white/[0.06] pb-6">
+        <header className="flex gap-4 items-center border-b border-white/6 pb-6">
           <div className="mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 text-sm font-semibold text-orange-500">TL</div>
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">Timeline</h1>
@@ -137,7 +131,7 @@ export default function TimelineWorkspace() {
                 </div>
               </article>
             ))}
-            {items.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.1] p-8 text-center text-zinc-500">No timeline events.</div> : null}
+            {items.length === 0 ? <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-zinc-500">No timeline events.</div> : null}
           </div>
 
           <aside className="rounded-xl border border-white/[0.07] bg-[#090a0d] p-4">

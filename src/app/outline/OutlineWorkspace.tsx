@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import AppFrame from "../components/AppFrame";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import {
@@ -14,20 +14,19 @@ type OutlineItem = { id: string; title: string };
 
 export default function OutlineWorkspace() {
   const { user, loading: authLoading } = useFirebaseUser();
-  const [items, setItems] = useState<OutlineItem[]>([]);
-  const [title, setTitle] = useState("");
-  const [migrationPrompted, setMigrationPrompted] = useState(false);
-
-  // Load from localStorage on initial mount
-  useEffect(() => {
+  const [items, setItems] = useState<OutlineItem[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem("wf_outline");
-      if (raw) {
-        const data = JSON.parse(raw);
-        setItems(data);
-      }
-    } catch (e) {}
-  }, []);
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? (data as OutlineItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [title, setTitle] = useState("");
+  const migrationPromptedRef = useRef(false);
 
   // Listen to Firestore if user is signed in
   useEffect(() => {
@@ -47,35 +46,30 @@ export default function OutlineWorkspace() {
     return unsubscribe;
   }, [user, authLoading]);
 
-  // Offer migration from localStorage to Firestore on first sign-in
+  // Migrate local data to Firestore on first sign-in without interrupting the user.
   useEffect(() => {
-    if (!user || migrationPrompted) return;
+    if (!user || migrationPromptedRef.current) return;
 
+    migrationPromptedRef.current = true;
     const localData = localStorage.getItem("wf_outline");
     if (localData) {
-      const shouldMigrate = confirm(
-        "Migrate your local outline to the cloud? Your data will sync across devices."
-      );
-      if (shouldMigrate) {
-        migrateLocalStorageToFirestore(user.uid, "wf_outline", "outline")
-          .then((result) => {
-            if (result.success) {
-              console.log(`Migrated ${result.migratedCount} outline items`);
-            } else {
-              console.error("Migration failed:", result.error);
-            }
-          });
-      }
+      void migrateLocalStorageToFirestore(user.uid, "wf_outline", "outline")
+        .then((result) => {
+          if (result.success) {
+            console.log(`Migrated ${result.migratedCount} outline items`);
+          } else {
+            console.error("Migration failed:", result.error);
+          }
+        });
     }
-    setMigrationPrompted(true);
-  }, [user, migrationPrompted]);
+  }, [user]);
 
   // Persist to localStorage if no user (offline mode)
   useEffect(() => {
     if (user) return;
     try {
       localStorage.setItem("wf_outline", JSON.stringify(items));
-    } catch (e) {}
+    } catch {}
   }, [items, user]);
 
   async function addOutlineItem(e: FormEvent) {
@@ -112,7 +106,7 @@ export default function OutlineWorkspace() {
   return (
     <AppFrame>
       <div className="mx-auto max-w-6xl">
-        <header className="flex gap-4 items-center border-b border-white/[0.06] pb-6">
+        <header className="flex gap-4 items-center border-b border-white/6 pb-6">
           <div className="mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 text-sm font-semibold text-orange-500">OL</div>
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">Outline</h1>
@@ -134,7 +128,7 @@ export default function OutlineWorkspace() {
                 </div>
               </article>
             ))}
-            {items.length === 0 ? <div className="rounded-xl border border-dashed border-white/[0.1] p-8 text-center text-zinc-500">No outline items.</div> : null}
+            {items.length === 0 ? <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-zinc-500">No outline items.</div> : null}
           </div>
 
           <aside className="rounded-xl border border-white/[0.07] bg-[#090a0d] p-4">

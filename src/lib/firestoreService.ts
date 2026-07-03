@@ -7,9 +7,7 @@ import {
   onSnapshot,
   query,
   orderBy,
-  Unsubscribe,
-  Query,
-  DocumentData,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -17,6 +15,8 @@ import { db } from './firebase';
  * Build a collection reference for a user's data
  * Structure: users/{uid}/{collectionName}
  */
+type FirestoreItem = { id: string; [key: string]: unknown };
+
 export function userCollectionRef(userId: string, collectionName: string) {
   return collection(db, `users/${userId}/${collectionName}`);
 }
@@ -27,7 +27,7 @@ export function userCollectionRef(userId: string, collectionName: string) {
 export async function addItem(
   userId: string,
   collectionName: string,
-  data: any
+  data: Record<string, unknown>
 ) {
   if (!userId) throw new Error('User ID is required');
   try {
@@ -69,7 +69,7 @@ export async function updateItem(
   userId: string,
   collectionName: string,
   itemId: string,
-  data: any
+  data: Record<string, unknown>
 ) {
   if (!userId) throw new Error('User ID is required');
   try {
@@ -91,8 +91,8 @@ export async function updateItem(
 export function listenToItems(
   userId: string,
   collectionName: string,
-  onUpdate: (items: any[]) => void,
-  onError?: (error: any) => void
+  onUpdate: (items: FirestoreItem[]) => void,
+  onError?: (error: unknown) => void
 ): Unsubscribe {
   if (!userId) {
     onError?.(new Error('User ID is required'));
@@ -109,7 +109,7 @@ export function listenToItems(
         const items = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as FirestoreItem[];
         onUpdate(items);
       },
       (error) => {
@@ -148,8 +148,9 @@ export async function migrateLocalStorageToFirestore(
     for (const item of items) {
       try {
         // Remove client-side id if present; Firestore will assign its own
-        const { id, ...dataToSave } = item;
-        await addItem(userId, collectionName, dataToSave);
+        const dataToSave = { ...(item as Record<string, unknown>) };
+        delete dataToSave.id;
+        await addItem(userId, collectionName, dataToSave as Record<string, unknown>);
         migratedCount++;
       } catch (err) {
         console.warn(`Failed to migrate item:`, err);

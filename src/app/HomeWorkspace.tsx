@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import AppFrame from "./components/AppFrame";
 import HomeCard from "./components/HomeCard";
+import { useFirebaseUser } from "@/lib/useFirebaseUser";
+import { listenToItems } from "@/lib/firestoreService";
 
 type Counts = {
   characters: number;
@@ -12,6 +14,7 @@ type Counts = {
 };
 
 export default function HomeWorkspace() {
+  const { user, loading: authLoading } = useFirebaseUser();
   const [counts, setCounts] = useState<Counts>({
     characters: 0,
     scenes: 0,
@@ -20,25 +23,7 @@ export default function HomeWorkspace() {
   });
 
   useEffect(() => {
-    try {
-      const chars = JSON.parse(localStorage.getItem("wf_characters") || "null");
-      const scenes = JSON.parse(localStorage.getItem("wf_scenes") || "null");
-      const timeline = JSON.parse(localStorage.getItem("wf_timeline") || "null");
-      const outline = JSON.parse(localStorage.getItem("wf_outline") || "null");
-
-      setCounts({
-        characters: Array.isArray(chars) ? chars.length : 0,
-        scenes: Array.isArray(scenes) ? scenes.length : 0,
-        timeline: Array.isArray(timeline) ? timeline.length : 0,
-        outline: Array.isArray(outline) ? outline.length : 0,
-      });
-    } catch (e) {
-      // ignore parse errors
-    }
-  }, []);
-
-  useEffect(() => {
-    function handleStorage() {
+    function readCountsFromStorage() {
       try {
         const chars = JSON.parse(localStorage.getItem("wf_characters") || "null");
         const scenes = JSON.parse(localStorage.getItem("wf_scenes") || "null");
@@ -51,20 +36,58 @@ export default function HomeWorkspace() {
           timeline: Array.isArray(timeline) ? timeline.length : 0,
           outline: Array.isArray(outline) ? outline.length : 0,
         });
-      } catch (e) {
-        // ignore
+      } catch {
+        setCounts({ characters: 0, scenes: 0, timeline: 0, outline: 0 });
       }
     }
 
-    // Listen for storage events (other tabs) and use a polling fallback
+    if (authLoading) return;
+
+    if (user) {
+      const unsubscribeCharacters = listenToItems(
+        user.uid,
+        "characters",
+        (items) => setCounts((current) => ({ ...current, characters: items.length })),
+        () => undefined
+      );
+      const unsubscribeScenes = listenToItems(
+        user.uid,
+        "scenes",
+        (items) => setCounts((current) => ({ ...current, scenes: items.length })),
+        () => undefined
+      );
+      const unsubscribeTimeline = listenToItems(
+        user.uid,
+        "timeline",
+        (items) => setCounts((current) => ({ ...current, timeline: items.length })),
+        () => undefined
+      );
+      const unsubscribeOutline = listenToItems(
+        user.uid,
+        "outline",
+        (items) => setCounts((current) => ({ ...current, outline: items.length })),
+        () => undefined
+      );
+
+      return () => {
+        unsubscribeCharacters();
+        unsubscribeScenes();
+        unsubscribeTimeline();
+        unsubscribeOutline();
+      };
+    }
+
+    readCountsFromStorage();
+
+    const handleStorage = () => readCountsFromStorage();
     window.addEventListener("storage", handleStorage);
 
-    const interval = setInterval(handleStorage, 1000);
+    const interval = window.setInterval(readCountsFromStorage, 1000);
     return () => {
       window.removeEventListener("storage", handleStorage);
-      clearInterval(interval);
+      window.clearInterval(interval);
     };
-  }, []);
+  }, [user, authLoading]);
 
   return (
     <AppFrame>
@@ -72,7 +95,7 @@ export default function HomeWorkspace() {
         <header className="flex flex-col gap-5 border-b border-white/[0.06] pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-wide text-orange-500">Dashboard</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">Writer's Forge</h1>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">Writer&apos;s Forge</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">A focused workspace for characters, scenes, timelines, and outlines.</p>
           </div>
           <div className="rounded-lg border border-white/[0.07] bg-[#08080a] px-4 py-2 text-sm text-zinc-500">Draft workspace</div>

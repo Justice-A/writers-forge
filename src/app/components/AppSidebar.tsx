@@ -25,14 +25,18 @@ export default function AppSidebar() {
   const [signingOut, setSigningOut] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-useEffect(() => {
-  const saved = localStorage.getItem("theme");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  if (saved === "dark") {
-    setIsDark(true);
-    document.documentElement.classList.add("dark");
-  }
-}, []);
+    const saved = window.localStorage.getItem("theme");
+    const nextDark = saved === "dark";
+    setIsDark(nextDark);
+    document.documentElement.classList.toggle("dark", nextDark);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+  }, [isDark]);
 
 function toggleTheme() {
   const next = !isDark;
@@ -62,7 +66,7 @@ function toggleTheme() {
   }
 
   return (
-    <aside className="hidden min-h-screen w-64 shrink-0 border-r border-white/[0.06] bg-[#08090c] px-4 py-6 lg:flex lg:flex-col">
+    <aside className="hidden min-h-screen w-64 shrink-0 border-r border-white/6 bg-[#08090c] px-4 py-6 lg:flex lg:flex-col">
       <Link href="/" className="flex items-center gap-3 px-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-lg text-orange-500">
           WF
@@ -84,7 +88,7 @@ function toggleTheme() {
               className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
                 isActive
                   ? "bg-orange-500/15 text-orange-400 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.16)]"
-                  : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
+                  : "text-zinc-500 hover:bg-white/4 hover:text-zinc-200"
               }`}
             >
               <span className="w-5 text-center text-[10px] font-semibold">
@@ -96,7 +100,7 @@ function toggleTheme() {
         })}
       </nav>
 
-      <div className="mt-auto border-t border-white/[0.06] pt-5">
+      <div className="mt-auto border-t border-white/6 pt-5">
         {user ? (
           <>
             <div className="flex items-center gap-3 rounded-lg px-2 py-3">
@@ -113,7 +117,7 @@ function toggleTheme() {
             <button
               onClick={handleSignOut}
               disabled={signingOut}
-              className="w-full mt-3 rounded-lg border border-white/[0.07] px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-50"
+              className="w-full mt-3 rounded-lg border border-white/[0.07] px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/4 hover:text-zinc-200 disabled:opacity-50"
             >
               {signingOut ? "Signing out..." : "Sign Out"}
             </button>

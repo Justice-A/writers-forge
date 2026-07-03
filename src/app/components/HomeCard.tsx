@@ -35,7 +35,7 @@ export default function HomeCard({
 
       <div className="mt-4 flex items-center justify-between">
         <div className="text-xs text-zinc-500">{lastAdded ?? "—"}</div>
-        <div className="rounded-md border border-white/[0.08] px-2.5 py-1 text-xs font-semibold text-orange-400">
+        <div className="rounded-md border border-white/8 px-2.5 py-1 text-xs font-semibold text-orange-400">
           Open
         </div>
       </div>
