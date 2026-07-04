@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import AppFrame from "./components/AppFrame";
 import HomeCard from "./components/HomeCard";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
@@ -15,6 +16,8 @@ type Counts = {
 
 export default function HomeWorkspace() {
   const { user, loading: authLoading } = useFirebaseUser();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [counts, setCounts] = useState<Counts>({
     characters: 0,
     scenes: 0,
@@ -89,6 +92,25 @@ export default function HomeWorkspace() {
     };
   }, [user, authLoading]);
 
+  // Show welcome banner if arrived after signup
+  useEffect(() => {
+    const welcome = searchParams?.get?.("welcome");
+    if (welcome) {
+      const el = document.getElementById("wf-welcome-banner");
+      if (el) el.style.display = "block";
+      // hide after 4s and remove query param
+      const t = setTimeout(() => {
+        if (el) el.style.display = "none";
+        try {
+          router.replace(window.location.pathname);
+        } catch {
+          /* ignore */
+        }
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams, router]);
+
   return (
     <AppFrame>
       <div className="mx-auto max-w-6xl">
@@ -96,10 +118,15 @@ export default function HomeWorkspace() {
           <div>
             <p className="text-sm font-medium uppercase tracking-wide text-orange-500">Dashboard</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 sm:text-5xl">Writer&apos;s Forge</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">A focused workspace for characters, scenes, timelines, and outlines.</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-500">A focused workspace for creating a story.</p>
           </div>
-          <div className="rounded-lg border border-white/[0.07] bg-[#08080a] px-4 py-2 text-sm text-zinc-500">Draft workspace</div>
         </header>
+
+        <div id="wf-welcome-banner" style={{ display: "none" }}>
+          <div className="mt-6 rounded-lg bg-green-600/10 border border-green-600/20 p-3 text-green-200">
+            Welcome to Writer's Forge — your dashboard is ready!
+          </div>
+        </div>
 
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <HomeCard

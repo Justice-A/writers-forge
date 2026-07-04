@@ -4,6 +4,7 @@ import {
   doc,
   deleteDoc,
   updateDoc,
+  setDoc,
   onSnapshot,
   query,
   orderBy,
@@ -85,6 +86,32 @@ export async function updateItem(
     });
   } catch (error) {
     console.error(`Error updating ${collectionName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Create or update a top-level user profile document at `users/{uid}`
+ */
+export async function upsertUserProfile(
+  userId: string,
+  data: Record<string, unknown>
+) {
+  if (!userId) throw new Error('User ID is required');
+  if (!db) throw new Error('Firebase Firestore is not configured yet.');
+
+  try {
+    const userDoc = doc(db, 'users', userId);
+    await setDoc(
+      userDoc,
+      {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    console.error('Error upserting user profile:', error);
     throw error;
   }
 }

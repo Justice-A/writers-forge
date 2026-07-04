@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import AppFrame from "../components/AppFrame";
+import AiAssistant from "../components/AiAssistant";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import {
   addItem,
@@ -347,6 +348,7 @@ export default function CharactersWorkspace() {
                 + Add Character
               </button>
             </form>
+            <AiAssistant type="characters" items={characters} />
           </div>
         </header>
 
