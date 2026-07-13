@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Writer's Forge",
-  description: "A scalable writing workspace for characters, scenes, timelines, and outlines.",
+  description: "A workspace for structured writing.",
 };
 
 export default function RootLayout({

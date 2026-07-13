@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import AppFrame from "../components/AppFrame";
-import StoryEditor from "@/app/components/StoryEditor";
+import StoryEditor from "../components/StoryEditor";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 
 export default function WritePage() {
@@ -24,7 +24,7 @@ export default function WritePage() {
         <header className="mb-6">
           <h2 className="text-2xl font-semibold text-zinc-100">Write</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            {loading ? "Checking auth..." : user ? "Your drafts are saved to your account." : "Sign in to persist stories — drafts save locally."}
+            {loading ? "Checking auth..." : user ? "Your drafts are saved to your account." : "Sign in to save your drafts"}
           </p>
         </header>
 

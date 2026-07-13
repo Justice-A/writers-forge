@@ -90,7 +90,7 @@ function toggleTheme() {
               href={item.href}
               className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
                 isActive
-                  ? "bg-orange-500/15 text-orange-400 shadow-[inset_0_0_0_1px_rgba(249,115,22,0.16)]"
+                  ? "bg-zinc-900 text-white shadow-[inset_0_0_0_1px_rgba(249,115,22,0.16)]"
                   : "text-zinc-500 hover:bg-white/4 hover:text-zinc-200"
               }`}
             >
@@ -127,7 +127,7 @@ function toggleTheme() {
           </>
         ) : (
           <>
-            <p className="text-xs text-zinc-600 mb-3">Local Mode</p>
+            <p className="text-xs text-zinc-600 mb-3">Guest Mode</p>
             <Link
               href="/auth"
               className="block w-full rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-500/15 text-center"

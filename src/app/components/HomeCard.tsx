@@ -7,7 +7,6 @@ type HomeCardProps = {
   description: string;
   href: string;
   count?: number;
-  lastAdded?: string | null;
   light?: boolean;
 };
 
@@ -16,7 +15,6 @@ export default function HomeCard({
   description,
   href,
   count,
-  lastAdded,
   light = false,
 }: HomeCardProps) {
   const cardClasses = light
@@ -33,15 +31,10 @@ export default function HomeCard({
           <h3 className="text-lg font-semibold text-zinc-100">{title}</h3>
           <p className="mt-1 text-sm text-zinc-500">{description}</p>
         </div>
-        <div className="text-right">
-          <div className="text-sm font-semibold text-zinc-200">{count ?? 0}</div>
-          <div className="mt-1 text-xs text-zinc-500">items</div>
-        </div>
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-xs text-zinc-500">{lastAdded ?? "—"}</div>
-        <div className="rounded-md border border-white/8 px-2.5 py-1 text-xs font-semibold text-orange-400">
+        <div className="rounded-md border border-white/8 px-2.5 py-1 text-xs font-semibold text-white">
           Open
         </div>
       </div>
