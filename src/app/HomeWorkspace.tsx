@@ -130,6 +130,13 @@ export default function HomeWorkspace() {
 
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <HomeCard
+            title="Write"
+            description="Draft your story in a focused editor"
+            href="/write"
+            count={undefined}
+            lastAdded={null}
+          />
+          <HomeCard
             title="Characters"
             description="Manage cast profiles and arcs"
             href="/characters"
