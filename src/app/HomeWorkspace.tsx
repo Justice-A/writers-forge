@@ -124,7 +124,7 @@ export default function HomeWorkspace() {
 
         <div id="wf-welcome-banner" style={{ display: "none" }}>
           <div className="mt-6 rounded-lg bg-green-600/10 border border-green-600/20 p-3 text-green-200">
-            Welcome to Writer's Forge — you're ready to start.
+            Welcome to Writer's Forge!
           </div>
         </div>
 
