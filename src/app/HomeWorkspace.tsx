@@ -135,6 +135,7 @@ export default function HomeWorkspace() {
             href="/write"
             count={undefined}
             lastAdded={null}
+            light
           />
           <HomeCard
             title="Characters"

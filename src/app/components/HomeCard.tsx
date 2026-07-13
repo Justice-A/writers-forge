@@ -8,6 +8,7 @@ type HomeCardProps = {
   href: string;
   count?: number;
   lastAdded?: string | null;
+  light?: boolean;
 };
 
 export default function HomeCard({
@@ -16,11 +17,16 @@ export default function HomeCard({
   href,
   count,
   lastAdded,
+  light = false,
 }: HomeCardProps) {
+  const cardClasses = light
+    ? "group block overflow-hidden rounded-3xl bg-white/5 p-5 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+    : "group block overflow-hidden rounded-lg border border-white/[0.07] bg-[#0b0b0d] p-5 transition hover:-translate-y-0.5 hover:border-orange-500/35 hover:bg-[#101012] focus:outline-none focus:ring-2 focus:ring-orange-500/40";
+
   return (
     <Link
       href={href}
-      className="group block overflow-hidden rounded-lg border border-white/[0.07] bg-[#0b0b0d] p-5 transition hover:-translate-y-0.5 hover:border-orange-500/35 hover:bg-[#101012] focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+      className={cardClasses}
     >
       <div className="flex items-center justify-between">
         <div>

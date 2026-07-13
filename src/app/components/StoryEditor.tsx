@@ -79,7 +79,7 @@ export default function StoryEditor({ initialId, initialTitle = "", initialConte
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Story title"
-          className="w-full rounded-md border bg-[#050506] px-3 py-2 text-zinc-100"
+          className="w-full rounded-md  bg-[#151518] px-3 py-2 text-zinc-100"
         />
       </div>
 
@@ -89,7 +89,7 @@ export default function StoryEditor({ initialId, initialTitle = "", initialConte
           onChange={(e) => setContent(e.target.value)}
           placeholder="Start writing your story here..."
           rows={18}
-          className="w-full rounded-md border bg-[#050506] px-3 py-3 text-zinc-100"
+          className="w-full rounded-md4 bg-[#151518] px-3 py-3 text-zinc-100"
         />
       </div>
 
