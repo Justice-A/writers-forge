@@ -22,6 +22,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,13 +34,31 @@ export default function AuthPage() {
     }
   }, [user, loading, router]);
 
+  async function handleGuestContinue() {
+    setError("");
+    setSubmitting(true);
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("wf_guest", "1");
+        sessionStorage.setItem("wf_guest", "1");
+      }
+      router.replace("/");
+      router.refresh();
+    } catch {
+      router.replace("/");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
 
     if (!auth || !isFirebaseConfigured) {
-      setError("Firebase is not configured yet. You can continue in local mode.");
+      setError("Firebase authentication is not ready yet. Please check your Firebase config and try again.");
       setSubmitting(false);
       return;
     }
@@ -55,15 +75,25 @@ export default function AuthPage() {
           setSubmitting(false);
           return;
         }
-        await createUserWithEmailAndPassword(auth, email, password);
-        // redirect with welcome flag so dashboard can show a welcome message
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        const newUser = credential.user;
+
+        if (newUser.uid) {
+          await upsertUserProfile(newUser.uid, {
+            email: newUser.email ?? null,
+            displayName: newUser.displayName ?? null,
+            photoURL: newUser.photoURL ?? null,
+            provider: "password",
+          });
+        }
+
         router.push("/?welcome=1");
         return;
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      // On success, redirect to home
-      router.push("/");
+      // On success, show a brief welcome message before the dashboard
+      router.push("/?welcome=1");
     } catch (err: unknown) {
       console.error("Auth error:", err);
       // Friendly mapping for common Firebase auth errors
@@ -124,7 +154,7 @@ export default function AuthPage() {
     setSubmitting(true);
 
     if (!auth || !isFirebaseConfigured) {
-      setError("Firebase is not configured yet. You can continue in local mode.");
+      setError("Firebase authentication is not ready yet. Please check your Firebase config and try again.");
       setSubmitting(false);
       return;
     }
@@ -144,8 +174,7 @@ export default function AuthPage() {
         });
       }
 
-      const isNew = (result as any)?.additionalUserInfo?.isNewUser;
-      router.push(isNew ? "/?welcome=1" : "/");
+      router.push("/?welcome=1");
     } catch (err: unknown) {
       console.error("Google sign-in error:", err);
       const code = (err as any)?.code as string | undefined;
@@ -224,27 +253,71 @@ export default function AuthPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-zinc-300">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 pr-11 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="absolute inset-y-0 right-3 flex items-center text-zinc-400 transition hover:text-zinc-200"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.58 10.58A2 2 0 0013.42 13.42" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.88 5.1A10.7 10.7 0 0112 5c4.6 0 8.4 2.6 10 7-.8 1.9-2 3.6-3.6 4.9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.61 6.61A10.9 10.9 0 002 12c1.6 4.4 5.4 7 10 7 1.5 0 2.9-.3 4.2-.8" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {mode === "signup" && (
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-300">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      className="w-full rounded-lg border border-white/7 bg-[#050506] px-4 py-2 pr-11 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((value) => !value)}
+                      className="absolute inset-y-0 right-3 flex items-center text-zinc-400 transition hover:text-zinc-200"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10.58 10.58A2 2 0 0013.42 13.42" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.88 5.1A10.7 10.7 0 0112 5c4.6 0 8.4 2.6 10 7-.8 1.9-2 3.6-3.6 4.9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.61 6.61A10.9 10.9 0 002 12c1.6 4.4 5.4 7 10 7 1.5 0 2.9-.3 4.2-.8" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -263,13 +336,17 @@ export default function AuthPage() {
 
             <div className="mt-4">
               <button
+                type="button"
                 onClick={handleGoogleSignIn}
                 disabled={submitting}
                 title="Continue with Google"
-                className="w-12 h-12 rounded-full flex items-center justify-center border border-white/8 bg-white/5 text-zinc-100 transition hover:bg-white/10 disabled:opacity-50"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-white/8 bg-white/5 text-zinc-100 transition hover:bg-white/10 disabled:opacity-50"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" fill="none">
-                  <path fill="#EA4335" d="M24 9.5c3.7 0 6.3 1.6 7.8 2.9l5.7-5.6C34.7 3.7 29.9 1.5 24 1.5 14.9 1.5 7.4 6.9 4 14.2l6.6 5.1C12.6 14.2 17.7 9.5 24 9.5z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" aria-label="Google logo">
+                  <path fill="#EA4335" d="M24 9.5c3.4 0 6.4 1.2 8.8 3.6l6.6-6.6C34.4 3 29.5 1 24 1 14.8 1 7.1 6.2 3.9 13.9l7.7 6c2.2-6.4 8.3-11.4 12.4-11.4Z" />
+                  <path fill="#4285F4" d="M45.8 24c0-1.6-.2-3.2-.5-4.7H24v8.9h12.4c-.5 2.8-2.1 5.1-4.5 6.7v5.5h7.2c4.2-3.9 6.7-9.6 6.7-16.4Z" />
+                  <path fill="#FBBC05" d="M11.6 19.9 3.9 13.9A23.4 23.4 0 0 0 1.6 24c0 3.8.9 7.4 2.5 10.6l7.7-6c-1.1-3.1-1.1-6.5 0-9.7Z" />
+                  <path fill="#34A853" d="M24 46c6.2 0 11.4-2 15.2-5.4l-7.2-5.5c-2 1.3-4.5 2.1-8 2.1-6.1 0-11.3-4.1-13.2-9.7l-7.7 6C7.1 41.8 14.8 46 24 46Z" />
                 </svg>
               </button>
             </div>
@@ -277,13 +354,10 @@ export default function AuthPage() {
 
           <div className="mt-4 text-center text-sm text-zinc-500">
             <button
-              onClick={() => {
-                try {
-                  localStorage.setItem('wf_guest', '1');
-                } catch {}
-                router.push('/');
-              }}
-              className="text-orange-400 hover:text-orange-300"
+              type="button"
+              onClick={handleGuestContinue}
+              disabled={submitting}
+              className="text-orange-400 transition hover:text-orange-300 disabled:opacity-50"
             >
               Continue as guest →
             </button>

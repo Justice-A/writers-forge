@@ -348,7 +348,7 @@ export default function CharactersWorkspace() {
                 + Add Character
               </button>
             </form>
-            <AiAssistant type="characters" items={characters} />
+        
           </div>
         </header>
 

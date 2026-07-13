@@ -106,7 +106,7 @@ export default function HomeWorkspace() {
         } catch {
           /* ignore */
         }
-      }, 4000);
+      }, 2500);
       return () => clearTimeout(t);
     }
   }, [searchParams, router]);
@@ -124,7 +124,7 @@ export default function HomeWorkspace() {
 
         <div id="wf-welcome-banner" style={{ display: "none" }}>
           <div className="mt-6 rounded-lg bg-green-600/10 border border-green-600/20 p-3 text-green-200">
-            Welcome to Writer's Forge — your dashboard is ready!
+            Welcome to Writer's Forge — you're ready to start.
           </div>
         </div>
 
