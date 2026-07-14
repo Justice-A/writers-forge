@@ -142,10 +142,9 @@ export default function ScenesWorkspace() {
     <AppFrame>
       <div className="mx-auto max-w-6xl">
         <header className="flex gap-4 items-center border-b border-white/6 pb-6">
-          <div className="mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 text-sm font-semibold text-orange-500">SC</div>
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">Scenes</h1>
-            <p className="mt-2 text-sm text-zinc-500">Create and manage your scenes. {user ? `(Synced as ${user.email})` : "(Local mode)"}</p>
+            <p className="mt-2 text-sm text-zinc-500">Create and manage your scenes</p>
           </div>
         </header>
 

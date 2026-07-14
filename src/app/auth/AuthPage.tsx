@@ -205,7 +205,6 @@ export default function AuthPage() {
               </span>
               <span className="text-2xl font-semibold">Writer&apos;s Forge</span>
             </div>
-            <p className="text-sm text-zinc-500">A focused workspace for writers.</p>
           </div>
 
           <div className="rounded-lg border border-white/7 bg-[#0b0b0d] p-6">

@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import AppFrame from "../components/AppFrame";
-import AiAssistant from "../components/AiAssistant";
 import { useFirebaseUser } from "@/lib/useFirebaseUser";
 import {
   addItem,
@@ -27,12 +26,11 @@ type Character = {
 };
 
 const filters = ["All Characters", "Protagonists", "Antagonists", "Supporting"];
-const MOCK_CHARACTER_NAMES = new Set(["Ade", "The Uncle", "Sade"]);
 
 function sanitizeCharacters(items: Character[]) {
   return items.filter((character) => {
     const normalizedName = character.name?.trim();
-    return !normalizedName || !MOCK_CHARACTER_NAMES.has(normalizedName);
+    return;
   });
 }
 
@@ -279,16 +277,12 @@ export default function CharactersWorkspace() {
       <div className="mx-auto max-w-6xl">
         <header className="grid gap-6 border-b border-white/6 pb-7 xl:grid-cols-[1fr_360px]">
           <div className="flex gap-4">
-            <div className="mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 text-sm font-semibold text-orange-500">
-              CH
-            </div>
             <div>
               <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">
                 Characters
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-                Create and manage your story characters.
-                {user ? ` (Synced as ${user.email})` : " (Local mode)"}
+                Create and manage your story characters
               </p>
             </div>
           </div>
@@ -368,9 +362,6 @@ export default function CharactersWorkspace() {
               </button>
             ))}
           </div>
-          <div className="rounded-lg border border-white/[0.07] bg-[#090a0d] px-4 py-2 text-sm text-zinc-500">
-            {user ? "Cloud Sync" : "Local Only"}
-          </div>
         </section>
 
         <section className="mt-5 space-y-4">
@@ -384,7 +375,7 @@ export default function CharactersWorkspace() {
           ))}
           {filteredCharacters.length === 0 ? (
             <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-zinc-500">
-              No characters match your search.
+              No characters match your search
             </div>
           ) : null}
         </section>
