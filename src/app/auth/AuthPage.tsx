@@ -200,9 +200,6 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="mb-4 flex items-center justify-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-lg text-orange-500">
-                WF
-              </span>
               <span className="text-2xl font-semibold">Writer&apos;s Forge</span>
             </div>
           </div>

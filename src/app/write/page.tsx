@@ -24,7 +24,7 @@ export default function WritePage() {
         <header className="mb-6">
           <h2 className="text-2xl font-semibold text-zinc-100">Write</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            {loading ? "Checking auth..." : user ? "Your drafts are saved to your account." : "Sign in to save your drafts"}
+            {loading ? "Checking auth..." : user ? "Your saved stories live here and sync to your account." : "Sign in to save your drafts"}
           </p>
         </header>
 
